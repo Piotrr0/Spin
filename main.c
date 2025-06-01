@@ -2,19 +2,22 @@
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
+#include <stdbool.h>
 
 #define WIDTH 120
 #define HEIGHT 60
 #define DIST_FROM_CAM 100
-#define SCALE 20
 #define CUBE_SIZE 40
 
 double A = 0, B = 0, C = 0;
 double lightX = 0.2, lightY = 0.5, lightZ = 0.7;
+double zoom = 20.f;
 char buffer[WIDTH*HEIGHT];
 double zBuffer[WIDTH*HEIGHT];
 
 const char shades[] = "@$#*!=;:~-,.";
+bool isRunning = true;
 
 const double cubeVertices[8][3] = {
     {  1,  1,  1 }, /* Front-top-right corner */
@@ -71,8 +74,8 @@ void rotate(const double x, const double y, const double z, double* xp, double* 
 void project(const double x, const double y, double z, int* xp, int* yp)
 {
     if (z == 0) z = 0.0001;
-    *xp = (int)(WIDTH / 2 + SCALE * x / z);
-    *yp = (int)(HEIGHT / 2 - SCALE * y / z);
+    *xp = (int)(WIDTH / 2 + zoom * x / z);
+    *yp = (int)(HEIGHT / 2 - zoom * y / z);
 }
 
 void drawTriangle(const double x1, const double y1, const double z1,
@@ -201,9 +204,9 @@ void display()
     }
 }
 
-void renderCube()
+void* renderCube()
 {
-    while (1) {
+    while (isRunning) {
         renderFrame();
         display();
 
@@ -213,10 +216,37 @@ void renderCube()
 
         usleep(50000);
     }
+    return NULL;
 }
 
 int main()
 {
-    renderCube();
+    char input = '\0';
+    pthread_t renderThread;
+    pthread_create(&renderThread, NULL, renderCube, NULL);
+
+    while (isRunning)
+    {
+        scanf(" %c", &input);
+
+        switch (input)
+        {
+            case 'q':
+                isRunning = false;
+                break;
+            case 'r':
+                A = B = C = 0;
+                break;
+            case '+':
+                zoom *= 1.1;
+                break;
+            case '-':
+                zoom /= 1.1;
+                break;
+            default:
+                break;
+        }
+    }
+    pthread_join(renderThread, NULL);
     return 0;
 }
