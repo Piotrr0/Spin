@@ -19,6 +19,8 @@ double zBuffer[WIDTH*HEIGHT];
 const char shades[] = "@$#*!=;:~-,.";
 bool isRunning = true;
 
+pthread_mutex_t renderMutex = PTHREAD_MUTEX_INITIALIZER;
+
 const double cubeVertices[8][3] = {
     {  1,  1,  1 }, /* Front-top-right corner */
     {  1,  1, -1 },
@@ -207,6 +209,8 @@ void display()
 void* renderCube()
 {
     while (isRunning) {
+        pthread_mutex_lock(&renderMutex);
+
         renderFrame();
         display();
 
@@ -214,6 +218,7 @@ void* renderCube()
         B += 0.03;
         C += 0.03;
 
+        pthread_mutex_unlock(&renderMutex);
         usleep(50000);
     }
     return NULL;
@@ -229,6 +234,7 @@ int main()
     {
         scanf(" %c", &input);
 
+        pthread_mutex_lock(&renderMutex);
         switch (input)
         {
             case 'q':
@@ -246,7 +252,9 @@ int main()
             default:
                 break;
         }
+        pthread_mutex_unlock(&renderMutex);
     }
     pthread_join(renderThread, NULL);
+    pthread_mutex_destroy(&renderMutex);
     return 0;
 }
